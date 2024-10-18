@@ -1,3 +1,3 @@
-# QuoteSimulator
+# QuoteMocker
 
-simulator for Tick or Bar data
+Mocker for Tick or Bar data
