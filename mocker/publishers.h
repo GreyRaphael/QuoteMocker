@@ -3,15 +3,16 @@
 #include <nng/supplemental/util/platform.h>
 
 #include <cstring>
-#include <format>
 
 #include "quotetypes.h"
 #include "random.hpp"
 
 struct Publisher {
-    Publisher(const char* url) {
+    Publisher(const char* url, nng_log_level level = NNG_LOG_DEBUG) {
         nng_pub0_open(&socket_);
         nng_listen(socket_, url, NULL, 0);
+        nng_log_set_logger(nng_stderr_logger);
+        nng_log_set_level(level);
     }
 
     int publish(void* data, size_t size) const {
@@ -35,9 +36,9 @@ inline void publish_bars(Publisher const& publisher, std::vector<std::string> co
 
             int ret = publisher.publish(&bar, sizeof(Bar));
             if (0 == ret) {
-                nng_log_debug("BAR", std::format("send bar at {}\n", timestamp).c_str());
+                nng_log_debug("BAR", "send bar %s at %d", bar.symbol, timestamp);
             } else {
-                nng_log_warn("BAR", std::format("send failed with error: {}\n", nng_strerror(ret)).c_str());
+                nng_log_err("BAR", "send failed with error:%s", nng_strerror(ret));
             }
         }
         nng_msleep(interval);
@@ -57,9 +58,9 @@ inline void publish_ticks(Publisher const& publisher, std::vector<std::string> c
 
             int ret = publisher.publish(&tick, sizeof(Tick));
             if (0 == ret) {
-                nng_log_debug("TICK", std::format("send tick at {}\n", timestamp).c_str());
+                nng_log_debug("TICK", "send tick %s at %d", tick.symbol, timestamp);
             } else {
-                nng_log_warn("TICK", std::format("send failed with error: {}\n", nng_strerror(ret)).c_str());
+                nng_log_err("TICK", "send failed with error:%s", nng_strerror(ret));
             }
         }
         nng_msleep(interval);
