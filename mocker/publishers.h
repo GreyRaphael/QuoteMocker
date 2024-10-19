@@ -35,9 +35,9 @@ inline void publish_bars(Publisher const& publisher, std::vector<std::string> co
 
             int ret = publisher.publish(&bar, sizeof(Bar));
             if (0 == ret) {
-                nng_log_debug("SUCCESS", std::format("send bar at {}\n", timestamp).c_str());
+                nng_log_debug("BAR", std::format("send bar at {}\n", timestamp).c_str());
             } else {
-                nng_log_warn("FAIL", std::format("send failed with error: {}\n", nng_strerror(ret)).c_str());
+                nng_log_warn("BAR", std::format("send failed with error: {}\n", nng_strerror(ret)).c_str());
             }
         }
         nng_msleep(interval);
@@ -57,9 +57,9 @@ inline void publish_ticks(Publisher const& publisher, std::vector<std::string> c
 
             int ret = publisher.publish(&tick, sizeof(Tick));
             if (0 == ret) {
-                nng_log_debug("SUCCESS", std::format("send tick at {}\n", timestamp).c_str());
+                nng_log_debug("TICK", std::format("send tick at {}\n", timestamp).c_str());
             } else {
-                nng_log_warn("FAIL", std::format("send failed with error: {}\n", nng_strerror(ret)).c_str());
+                nng_log_warn("TICK", std::format("send failed with error: {}\n", nng_strerror(ret)).c_str());
             }
         }
         nng_msleep(interval);
