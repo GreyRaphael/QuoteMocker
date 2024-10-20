@@ -34,7 +34,7 @@ table TickData {
     av: [uint32];
     bv: [uint32];
     an: [uint32];
-    an: [uint32];
+    bn: [uint32];
 }
 
 union Payload {
