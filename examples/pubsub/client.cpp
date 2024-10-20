@@ -5,7 +5,7 @@ int main(int argc, char const *argv[]) {
         printf("usage: %s [address]\n", argv[0]);
         return 1;
     }
-    std::vector<std::string> symbols{"600000"};
+    std::vector<std::string> symbols{"600000", "000001"};
     Subscriber subscriber{argv[1], symbols};
     subscribe_bars(subscriber);
 }
