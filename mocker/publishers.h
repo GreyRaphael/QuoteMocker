@@ -11,6 +11,7 @@ struct Publisher {
     Publisher(const char* url, nng_log_level level = NNG_LOG_DEBUG) {
         nng_pub0_open(&socket_);
         nng_listen(socket_, url, NULL, 0);
+        // set logger
         nng_log_set_logger(nng_stderr_logger);
         nng_log_set_level(level);
     }
