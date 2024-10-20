@@ -7,7 +7,7 @@ int main(int argc, char const *argv[]) {
     client1.sub(0, 0, "600000");
 
     Client client2{"tcp://127.0.0.1:8889"};
-    client2.sub(0, 0, "600000");
+    client2.sub(0, 0, "000001");
 
     getchar();
 }
