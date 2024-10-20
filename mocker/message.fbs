@@ -1,0 +1,52 @@
+namespace Messages;
+
+table BarData {
+    symbol: string;
+    timestamp: int64;
+    amount: uint64;
+    volume: uint64;
+    num_trades: uint32;
+    preclose: uint32;
+    open: uint32;
+    high: uint32;
+    low: uint32;
+    close: uint32;
+}
+
+table TickData {
+    symbol: string;
+    timestamp: int64;
+    amount: uint64;
+    avg_ap: uint32;
+    avg_bp: uint32;
+    volume: uint64;
+    total_av: uint64;
+    total_bv: uint64;
+    num_trades: uint32;
+    preclose: uint32;
+    open: uint32;
+    last: uint32;
+    iopv: uint32;
+    high_limit: uint32;
+    low_limit: uint32;
+    ap: [int32];
+    bp: [int32];
+    av: [uint32];
+    bv: [uint32];
+    an: [uint32];
+    an: [uint32];
+}
+
+union Payload {
+    EtfBar1m: BarData,
+    EtfBar1d: BarData,
+    EtfBar1w: BarData,
+    EtfBar1m: BarData,
+    EtfTick: TickData
+}
+
+table Message {
+    payload: Payload;
+}
+
+root_type Message;
