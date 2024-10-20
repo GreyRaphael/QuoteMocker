@@ -38,10 +38,10 @@ table TickData {
 }
 
 union Payload {
-    EtfBar1m: BarData,
+    EtfBar1min: BarData,
     EtfBar1d: BarData,
     EtfBar1w: BarData,
-    EtfBar1m: BarData,
+    EtfBar1mon: BarData,
     EtfTick: TickData
 }
 
