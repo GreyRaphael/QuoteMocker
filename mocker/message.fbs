@@ -1,5 +1,11 @@
 namespace Messages;
 
+table Topic{
+    market: uint8;
+    type: uint8;
+    symbol: string;
+}
+
 table BarData {
     symbol: string;
     timestamp: int64;
@@ -42,7 +48,8 @@ union Payload {
     EtfBar1d: BarData,
     EtfBar1w: BarData,
     EtfBar1mon: BarData,
-    EtfTick: TickData
+    EtfTick: TickData,
+    Topic: Topic
 }
 
 table Message {

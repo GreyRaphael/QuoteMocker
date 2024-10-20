@@ -1,6 +1,5 @@
+#include <mocker/pubsub/pub.hpp>
 #include <thread>
-
-#include "mocker/publishers.h"
 
 int main(int argc, char const *argv[]) {
     if (argc < 2) {

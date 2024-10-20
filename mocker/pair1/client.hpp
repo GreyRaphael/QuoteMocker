@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-#include "mocker/message_generated.h"
+#include "../message_generated.h"
 
 struct Client {
     Client(const char* url, nng_log_level level = NNG_LOG_DEBUG) {
@@ -19,6 +19,12 @@ struct Client {
         // set logger
         nng_log_set_logger(nng_stderr_logger);
         nng_log_set_level(level);
+    }
+
+    ~Client() {
+        nng_aio_free(send_aio_);
+        nng_aio_free(recv_aio_);
+        nng_close(socket_);
     }
 
     void sub(uint8_t market, uint8_t type, const char* symbol) {

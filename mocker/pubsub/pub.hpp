@@ -4,8 +4,8 @@
 
 #include <cstring>
 
-#include "quotetypes.h"
-#include "random.hpp"
+#include "../quotetypes.h"
+#include "../random.hpp"
 
 struct Publisher {
     Publisher(const char* url, nng_log_level level = NNG_LOG_DEBUG) {

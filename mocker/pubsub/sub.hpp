@@ -1,11 +1,10 @@
+#include <mocker/quotetypes.h>
 #include <nng/nng.h>
 #include <nng/protocol/pubsub0/sub.h>
 
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "quotetypes.h"
 
 struct Subscriber {
     Subscriber(const char* url, std::vector<std::string> const& topics, nng_log_level level = NNG_LOG_DEBUG) {

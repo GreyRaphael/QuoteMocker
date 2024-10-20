@@ -1,4 +1,4 @@
-#include "mocker/subscribers.h"
+#include <mocker/pubsub/sub.hpp>
 
 int main(int argc, char const *argv[]) {
     if (argc < 2) {
