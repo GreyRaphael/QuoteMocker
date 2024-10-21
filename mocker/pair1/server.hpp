@@ -52,19 +52,18 @@ struct Server {
             case Messages::Payload::Topic: {
                 auto topic = ptr->payload_as_Topic();
                 nng_log_debug("SERVER", "recv topic %s, market=%d", topic->symbol()->c_str(), topic->market());
+
                 auto timestamp = nng_clock();
-                int index = 0;
-                while (true) {
-                    builder_.Clear();
-                    auto bar = Messages::CreateBarDataDirect(
-                        builder_,
-                        topic->symbol()->c_str(),
-                        timestamp,
-                        index++);
-                    auto reply = Messages::CreateMessage(builder_, Messages::Payload::EtfBar1d, bar.Union());
-                    builder_.Finish(reply);
-                    send_reply(pipe, builder_.GetBufferPointer(), builder_.GetSize());
-                }
+                int index = 1000;
+                builder_.Clear();
+                auto bar = Messages::CreateBarDataDirect(
+                    builder_,
+                    topic->symbol()->c_str(),
+                    timestamp,
+                    index++);
+                auto reply = Messages::CreateMessage(builder_, Messages::Payload::EtfBar1d, bar.Union());
+                builder_.Finish(reply);
+                send_reply(pipe, builder_.GetBufferPointer(), builder_.GetSize());
 
                 break;
             }
