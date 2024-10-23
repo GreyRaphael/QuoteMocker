@@ -16,13 +16,13 @@ struct KcpClient {
         remote_host = j["host"];
         remote_port = j["port"];
         // kcp settings
-        kcp_setting_.conv = j["conv"];
-        kcp_setting_.nodelay = j["nodelay"];
-        kcp_setting_.interval = j["interval"];
-        kcp_setting_.fastresend = j["resend"];
-        kcp_setting_.nocwnd = j["nc"];
-        kcp_setting_.sndwnd = j["sndwnd"];
-        kcp_setting_.rcvwnd = j["rcvwnd"];
+        kcp_setting_.conv = j["kcp"]["conv"];
+        kcp_setting_.nodelay = j["kcp"]["nodelay"];
+        kcp_setting_.interval = j["kcp"]["interval"];
+        kcp_setting_.fastresend = j["kcp"]["resend"];
+        kcp_setting_.nocwnd = j["kcp"]["nc"];
+        kcp_setting_.sndwnd = j["kcp"]["sndwnd"];
+        kcp_setting_.rcvwnd = j["kcp"]["rcvwnd"];
         // local host for UDS
         local_host = std::tmpnam(nullptr);
     }
@@ -32,7 +32,7 @@ struct KcpClient {
 
     void start() {
         if (auto sockfd = client_.createsocket(remote_port, remote_host.c_str()); sockfd < 0) {
-            fmt::println("Failed to create socket");
+            fmt::println("Failed to create socket {}:{}", remote_host, remote_port);
             return;
         }
 
@@ -47,7 +47,7 @@ struct KcpClient {
 
         };
 
-        // set kcp
+        // set kcp options
         client_.setKcp(&kcp_setting_);
         client_.start();
     }
