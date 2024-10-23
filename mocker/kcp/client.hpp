@@ -1,4 +1,5 @@
 #pragma once
+#include <flatbuffers/flatbuffer_builder.h>
 #include <fmt/core.h>
 #include <hv/UdpClient.h>
 
@@ -7,6 +8,8 @@
 #include <fstream>
 #include <hv/json.hpp>
 #include <vector>
+
+#include "mocker/message_generated.h"
 
 struct KcpClient {
     KcpClient(const char* jpath) {
@@ -53,6 +56,11 @@ struct KcpClient {
     }
 
     void subscribe(std::vector<std::string> const& symbols) {
+        flatbuffers::FlatBufferBuilder builder;
+        auto topic = Messages::CreateTopicDirect(builder, 1, 1, "600000");
+        auto msg = Messages::CreateMessage(builder, Messages::Payload::Topic, topic.Union());
+        builder.Finish(msg);
+        client_.sendto(builder.GetBufferPointer(), builder.GetSize());
     }
 
     void wait() {

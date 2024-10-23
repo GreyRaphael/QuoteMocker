@@ -8,6 +8,8 @@
 #include <fstream>
 #include <hv/json.hpp>
 
+#include "mocker/message_generated.h"
+
 struct KcpServer {
     KcpServer(const char* jpath) {
         std::ifstream file{jpath};
@@ -35,7 +37,18 @@ struct KcpServer {
         fmt::println("server bind {}:{}", server_.host, server_.port);
 
         server_.onMessage = [](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
-
+            auto msg = Messages::GetMessage(buf->data());
+            switch (msg->payload_type()) {
+                case Messages::Payload::Topic: {
+                    auto topic = msg->payload_as_Topic();
+                    fmt::println("onMessage Topic, mkt={},type={},symbol={}", topic->market(), topic->type(), topic->symbol()->c_str());
+                    break;
+                }
+                default: {
+                    fmt::println("onMessage Unknown Payload Type");
+                    break;
+                }
+            }
         };
 
         server_.onWriteComplete = [](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
