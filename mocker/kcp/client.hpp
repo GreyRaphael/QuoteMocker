@@ -68,6 +68,7 @@ struct KcpClient {
                     break;
                 }
                 default: {
+                    fmt::println("Unknown payload type");
                     break;
                 }
             }

@@ -7,11 +7,11 @@
 #include <hv/hloop.h>
 #include <hv/htime.h>
 
+#include <chrono>
 #include <cstdio>
 #include <fstream>
 #include <hv/json.hpp>
 #include <thread>
-#include <chrono>
 
 #include "mocker/message_generated.h"
 
@@ -46,14 +46,18 @@ struct KcpServer {
             switch (msg->payload_type()) {
                 case Messages::Payload::Topic: {
                     auto topic = msg->payload_as_Topic();
-                    fmt::println("onMessage Topic, mkt={},type={},symbol={}", topic->market(), topic->type(), topic->symbol()->c_str());
+                    fmt::println("onMessage Topic of {}, mkt={},type={},symbol={}", channel->peeraddr(), topic->market(), topic->type(), topic->symbol()->c_str());
 
-                    for (size_t i = 0; i < 10; ++i) {
+                    channel->setHeartbeat(1000, [&channel] {
+                        fmt::println("heartbeat, {}", channel->peeraddr());
+                    });
+
+                    server_.loop()->setInterval(1000, [this, channel](hv::TimerID timerID) {
                         builder_.Clear();
                         auto dt = gettick_ms();
                         auto bar1d = Messages::CreateBarDataDirect(
                             builder_,
-                            topic->symbol()->c_str(),
+                            "600000",
                             dt,
                             25000,
                             1000,
@@ -65,10 +69,9 @@ struct KcpServer {
                             1235);
                         auto reply = Messages::CreateMessage(builder_, Messages::Payload::EtfBar1d, bar1d.Union());
                         builder_.Finish(reply);
-                        // channel->write(builder_.GetBufferPointer(), builder_.GetSize());
-                        server_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
-                        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                    }
+                        // server_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
+                        channel->write(builder_.GetBufferPointer(), builder_.GetSize());
+                    });
 
                     break;
                 }
@@ -80,7 +83,7 @@ struct KcpServer {
         };
 
         server_.onWriteComplete = [](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
-
+            // fmt::println("onWriteComplete: {} bytes", buf->size());
         };
 
         // set kcp options
