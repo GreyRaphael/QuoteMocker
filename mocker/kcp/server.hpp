@@ -1,12 +1,17 @@
 #pragma once
 
+#include <flatbuffers/flatbuffer_builder.h>
 #include <fmt/core.h>
+#include <hv/EventLoop.h>
 #include <hv/UdpServer.h>
 #include <hv/hloop.h>
+#include <hv/htime.h>
 
 #include <cstdio>
 #include <fstream>
 #include <hv/json.hpp>
+#include <thread>
+#include <chrono>
 
 #include "mocker/message_generated.h"
 
@@ -36,12 +41,35 @@ struct KcpServer {
         }
         fmt::println("server bind {}:{}", server_.host, server_.port);
 
-        server_.onMessage = [](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
+        server_.onMessage = [this](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
             auto msg = Messages::GetMessage(buf->data());
             switch (msg->payload_type()) {
                 case Messages::Payload::Topic: {
                     auto topic = msg->payload_as_Topic();
                     fmt::println("onMessage Topic, mkt={},type={},symbol={}", topic->market(), topic->type(), topic->symbol()->c_str());
+
+                    for (size_t i = 0; i < 10; ++i) {
+                        builder_.Clear();
+                        auto dt = gettick_ms();
+                        auto bar1d = Messages::CreateBarDataDirect(
+                            builder_,
+                            topic->symbol()->c_str(),
+                            dt,
+                            25000,
+                            1000,
+                            200,
+                            1230,
+                            1231,
+                            1238,
+                            1229,
+                            1235);
+                        auto reply = Messages::CreateMessage(builder_, Messages::Payload::EtfBar1d, bar1d.Union());
+                        builder_.Finish(reply);
+                        // channel->write(builder_.GetBufferPointer(), builder_.GetSize());
+                        server_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                    }
+
                     break;
                 }
                 default: {
@@ -71,4 +99,5 @@ struct KcpServer {
    private:
     kcp_setting_t kcp_setting_;
     hv::UdpServer server_;
+    flatbuffers::FlatBufferBuilder builder_{1024};
 };
