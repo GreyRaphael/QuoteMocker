@@ -1,0 +1,13 @@
+{
+    "host": "0.0.0.0",
+    "port": 6666,
+    "kcp": {
+        "conv": 287454020,
+        "nodelay": 0,
+        "interval": 40,
+        "resend": 0,
+        "nc": 0,
+        "sndwnd": 32,
+        "rcvwnd": 32
+    }
+}
