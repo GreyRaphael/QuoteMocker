@@ -84,7 +84,7 @@ struct KcpClient {
 
     void subscribe(std::vector<std::string> const& symbols) {
         flatbuffers::FlatBufferBuilder builder;
-        auto topic = Messages::CreateTopicDirect(builder, 1, 1, "600000");
+        auto topic = Messages::CreateTopicDirect(builder, 1, 1, "300116");
         auto msg = Messages::CreateMessage(builder, Messages::Payload::Topic, topic.Union());
         builder.Finish(msg);
         client_.sendto(builder.GetBufferPointer(), builder.GetSize());

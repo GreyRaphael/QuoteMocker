@@ -14,8 +14,15 @@
 #include <cstring>
 #include <fstream>
 #include <hv/json.hpp>
+#include <unordered_map>
 
 #include "mocker/message_generated.h"
+#include "mocker/random.hpp"
+
+struct Client {
+    sockaddr saddr;
+    std::string symbol;
+};
 
 struct KcpServer {
     KcpServer(const char* jpath) {
@@ -44,13 +51,17 @@ struct KcpServer {
         fmt::println("server bind {}:{}", server_.host, server_.port);
 
         server_.onMessage = [this](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
-            addrs_.emplace_back(channel->peeraddr());
-
             auto msg = Messages::GetMessage(buf->data());
             switch (msg->payload_type()) {
                 case Messages::Payload::Topic: {
                     auto topic = msg->payload_as_Topic();
                     fmt::println("onMessage Topic of {}, id={}, mkt={},type={},symbol={}", channel->peeraddr(), channel->id(), topic->market(), topic->type(), topic->symbol()->c_str());
+
+                    auto saddr = hio_peeraddr(channel->io());
+                    Client client;
+                    memcpy(&client.saddr, saddr, sizeof(sockaddr));
+                    client.symbol = topic->symbol()->c_str();
+                    clients_[channel->peeraddr()] = client;
                     break;
                 }
                 default: {
@@ -68,30 +79,25 @@ struct KcpServer {
         server_.setKcp(&kcp_setting_);
         server_.start();
         server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
-            for (auto&& addr : addrs_) {
-                fmt::println("send to {}", addr);
+            for (auto&& [url, client] : clients_) {
+                fmt::println("send to {}", url);
                 builder_.Clear();
                 auto dt = gettick_ms();
                 auto bar1d = Messages::CreateBarDataDirect(
                     builder_,
-                    "600000",
+                    client.symbol.c_str(),
                     dt,
-                    25000,
-                    1000,
-                    200,
-                    1230,
-                    1231,
-                    1238,
-                    1229,
-                    1235);
+                    amt_gen_(),
+                    vol_gen_(),
+                    num_gen_(),
+                    price_gen_(),
+                    price_gen_(),
+                    price_gen_(),
+                    price_gen_(),
+                    price_gen_());
                 auto reply = Messages::CreateMessage(builder_, Messages::Payload::EtfBar1d, bar1d.Union());
                 builder_.Finish(reply);
-                sockaddr_u saddr{};
-                auto result = hv::split(addr, ':');
-
-                sockaddr_set_ipport(&saddr, result[0].c_str(), atoi(result[1].c_str()));
-                struct sockaddr sa = saddr.sa;
-                server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &sa);
+                server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
             }
         });
     }
@@ -108,5 +114,11 @@ struct KcpServer {
     kcp_setting_t kcp_setting_;
     hv::UdpServer server_;
     flatbuffers::FlatBufferBuilder builder_{1024};
-    std::vector<std::string> addrs_{};
+    std::unordered_map<std::string, Client> clients_{};
+
+   private:
+    ClampedNormalIntGenerator vol_gen_{4000, 500};
+    ClampedNormalIntGenerator amt_gen_{40000, 4000};
+    ClampedNormalIntGenerator num_gen_{2000, 100};
+    ClampedNormalIntGenerator price_gen_{};
 };
