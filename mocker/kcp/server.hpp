@@ -1,7 +1,7 @@
 #pragma once
 
 #include <flatbuffers/flatbuffer_builder.h>
-#include <fmt/core.h>
+#include <fmtlog/fmtlog-inl.h>
 #include <hv/EventLoop.h>
 #include <hv/UdpServer.h>
 #include <hv/hloop.h>
@@ -44,21 +44,25 @@ struct KcpServer {
         kcp_setting_.nocwnd = j["kcp"]["nc"];
         kcp_setting_.sndwnd = j["kcp"]["sndwnd"];
         kcp_setting_.rcvwnd = j["kcp"]["rcvwnd"];
+
+        // config logger
+        fmtlog::setLogLevel(fmtlog::DBG);
+        fmtlog::startPollingThread(200);
     }
 
     void start() {
         if (auto bindfd = server_.createsocket(port, host.c_str()); bindfd < 0) {
-            fmt::println("Failed to bind to {}:{}", host, port);
+            loge("Failed to bind to {}:{}", host, port);
             return;
         }
-        fmt::println("server bind {}:{}", server_.host, server_.port);
+        logi("server bind {}:{}", server_.host, server_.port);
 
         server_.onMessage = [this](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
             auto msg = Messages::GetMessage(buf->data());
             switch (msg->payload_type()) {
                 case Messages::Payload::Topic: {
                     auto topic = msg->payload_as_Topic();
-                    fmt::println("onMessage Topic of {}, id={}, mkt={},type={},symbol={}", channel->peeraddr(), channel->id(), topic->market(), topic->type(), topic->symbol()->c_str());
+                    logd("onMessage Topic of {}, id={}, mkt={},type={},symbol={}", channel->peeraddr(), channel->id(), topic->market(), topic->type(), topic->symbol()->c_str());
 
                     auto saddr = hio_peeraddr(channel->io());
                     Client client;
@@ -70,7 +74,7 @@ struct KcpServer {
                 }
                 case Messages::Payload::Replay: {
                     auto replay = msg->payload_as_Replay();
-                    fmt::println("onMessage Replay [{}, {}] of {}", replay->dt_start(), replay->dt_end(), replay->topic()->symbol()->c_str());
+                    logd("onMessage Replay [{}, {}] of {}", replay->dt_start(), replay->dt_end(), replay->topic()->symbol()->c_str());
                     break;
                 }
                 case Messages::Payload::HeartBeat: {
@@ -78,14 +82,13 @@ struct KcpServer {
                     break;
                 }
                 default: {
-                    fmt::println("onMessage Unknown Payload Type");
+                    logd("onMessage Unknown Payload Type");
                     break;
                 }
             }
         };
 
         server_.onWriteComplete = [](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
-            // fmt::println("onWriteComplete: {} bytes", buf->size());
         };
 
         // set kcp options
@@ -93,7 +96,7 @@ struct KcpServer {
         server_.start();
         server_.loop()->setInterval(3000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                // fmt::println("send bar1d to {}", url);
+                // logd("send bar1d to {}", url);
                 builder_.Clear();
                 auto dt = gettick_ms();
                 auto bar1d = Messages::CreateBarDataDirect(
@@ -116,7 +119,7 @@ struct KcpServer {
 
         server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                // fmt::println("send bar1min to {}", url);
+                // logd("send bar1min to {}", url);
                 builder_.Clear();
                 auto dt = gettick_ms();
                 auto bar1min = Messages::CreateBarDataDirect(
@@ -140,7 +143,7 @@ struct KcpServer {
         // heartbeat
         server_.loop()->setInterval(5000, [this](hv::TimerID timerID) {
             auto now = gettick_ms();
-            fmt::println("send heartbeat at {}", now);
+            logd("send heartbeat at {}", now);
             for (auto&& [url, client] : clients_) {
                 builder_.Clear();
                 auto hb = Messages::CreateHeartBeat(builder_);
@@ -153,7 +156,7 @@ struct KcpServer {
         // check alive
         server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
             auto now = gettick_ms();
-            fmt::println("check alive at {}", now);
+            logd("check alive at {}", now);
 
             std::erase_if(clients_, [this](auto&& kv) {
                 return kv.second.last_dt + 5000 < gettick_ms();

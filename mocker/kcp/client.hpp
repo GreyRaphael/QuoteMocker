@@ -1,6 +1,6 @@
 #pragma once
 #include <flatbuffers/flatbuffer_builder.h>
-#include <fmt/core.h>
+#include <fmtlog/fmtlog-inl.h>
 #include <hv/UdpClient.h>
 
 #include <cstdio>
@@ -28,6 +28,10 @@ struct KcpClient {
         kcp_setting_.rcvwnd = j["kcp"]["rcvwnd"];
         // local host for UDS
         local_host = std::tmpnam(nullptr);
+
+        // config logger
+        fmtlog::setLogLevel(fmtlog::DBG);
+        fmtlog::startPollingThread(200);
     }
     ~KcpClient() {
         std::filesystem::remove(local_host);
@@ -35,7 +39,7 @@ struct KcpClient {
 
     void start() {
         if (auto sockfd = client_.createsocket(remote_port, remote_host.c_str()); sockfd < 0) {
-            fmt::println("Failed to create socket {}:{}", remote_host, remote_port);
+            loge("Failed to create socket {}:{}", remote_host, remote_port);
             return;
         }
 
@@ -49,22 +53,22 @@ struct KcpClient {
             switch (msg->payload_type()) {
                 case Messages::Payload::EtfBar1d: {
                     auto etf_bar1d = msg->payload_as_EtfBar1d();
-                    fmt::println("EtfBar1d: {},vol={}", etf_bar1d->symbol()->c_str(), etf_bar1d->volume());
+                    logd("EtfBar1d: {},vol={}", etf_bar1d->symbol()->c_str(), etf_bar1d->volume());
                     break;
                 }
                 case Messages::Payload::EtfBar1min: {
                     auto etf_bar1min = msg->payload_as_EtfBar1min();
-                    fmt::println("EtfBar1min: {},vol={}", etf_bar1min->symbol()->c_str(), etf_bar1min->volume());
+                    logd("EtfBar1min: {},vol={}", etf_bar1min->symbol()->c_str(), etf_bar1min->volume());
                     break;
                 }
                 case Messages::Payload::EtfBar1w: {
                     auto etf_bar1w = msg->payload_as_EtfBar1w();
-                    fmt::println("EtfBar1w: {},vol={}", etf_bar1w->symbol()->c_str(), etf_bar1w->volume());
+                    logd("EtfBar1w: {},vol={}", etf_bar1w->symbol()->c_str(), etf_bar1w->volume());
                     break;
                 }
                 case Messages::Payload::EtfBar1mon: {
                     auto etf_bar1mon = msg->payload_as_EtfBar1mon();
-                    fmt::println("EtfBar1mon: {},vol={}", etf_bar1mon->symbol()->c_str(), etf_bar1mon->volume());
+                    logd("EtfBar1mon: {},vol={}", etf_bar1mon->symbol()->c_str(), etf_bar1mon->volume());
                     break;
                 }
                 case Messages::Payload::HeartBeat: {
@@ -76,7 +80,7 @@ struct KcpClient {
                     break;
                 }
                 default: {
-                    fmt::println("Unknown payload type");
+                    logd("Unknown payload type");
                     break;
                 }
             }
