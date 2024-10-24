@@ -90,6 +90,15 @@ struct KcpClient {
         client_.sendto(builder.GetBufferPointer(), builder.GetSize());
     }
 
+    void replay(std::vector<std::string> const& symbols) {
+        flatbuffers::FlatBufferBuilder builder;
+        auto topic = Messages::CreateTopicDirect(builder, 1, 1, "688538");
+        auto replay = Messages::CreateReplay(builder, 1729390224, 1729735824, topic);
+        auto msg = Messages::CreateMessage(builder, Messages::Payload::Replay, replay.Union());
+        builder.Finish(msg);
+        client_.sendto(builder.GetBufferPointer(), builder.GetSize());
+    }
+
     void wait() {
         while (getchar() != '\n');
     }

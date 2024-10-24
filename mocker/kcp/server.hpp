@@ -64,6 +64,11 @@ struct KcpServer {
                     clients_[channel->peeraddr()] = client;
                     break;
                 }
+                case Messages::Payload::Replay: {
+                    auto replay = msg->payload_as_Replay();
+                    fmt::println("onMessage Replay [{}, {}] of {}", replay->dt_start(), replay->dt_end(), replay->topic()->symbol()->c_str());
+                    break;
+                }
                 default: {
                     fmt::println("onMessage Unknown Payload Type");
                     break;

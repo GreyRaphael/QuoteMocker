@@ -50,12 +50,13 @@ table TickData {
 }
 
 union Payload {
-    EtfBar1min: BarData,
+    EtfBar1min: BarData, // alias
     EtfBar1d: BarData,
     EtfBar1w: BarData,
     EtfBar1mon: BarData,
     EtfTick: TickData,
-    Topic: Topic
+    Topic,
+    Replay
 }
 
 table Message {
