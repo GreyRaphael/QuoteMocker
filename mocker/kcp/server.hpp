@@ -78,9 +78,9 @@ struct KcpServer {
         // set kcp options
         server_.setKcp(&kcp_setting_);
         server_.start();
-        server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
+        server_.loop()->setInterval(3000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                fmt::println("send to {}", url);
+                fmt::println("send bar1d to {}", url);
                 builder_.Clear();
                 auto dt = gettick_ms();
                 auto bar1d = Messages::CreateBarDataDirect(
@@ -96,6 +96,29 @@ struct KcpServer {
                     price_gen_(),
                     price_gen_());
                 auto reply = Messages::CreateMessage(builder_, Messages::Payload::EtfBar1d, bar1d.Union());
+                builder_.Finish(reply);
+                server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
+            }
+        });
+
+        server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
+            for (auto&& [url, client] : clients_) {
+                fmt::println("send bar1min to {}", url);
+                builder_.Clear();
+                auto dt = gettick_ms();
+                auto bar1min = Messages::CreateBarDataDirect(
+                    builder_,
+                    client.symbol.c_str(),
+                    dt,
+                    amt_gen_(),
+                    vol_gen_(),
+                    num_gen_(),
+                    price_gen_(),
+                    price_gen_(),
+                    price_gen_(),
+                    price_gen_(),
+                    price_gen_());
+                auto reply = Messages::CreateMessage(builder_, Messages::Payload::EtfBar1min, bar1min.Union());
                 builder_.Finish(reply);
                 server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
             }
