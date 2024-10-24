@@ -10,11 +10,13 @@
 #include <hv/htime.h>
 #include <sys/socket.h>
 
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <hv/json.hpp>
 #include <unordered_map>
+#include <vector>
 
 #include "mocker/message_generated.h"
 #include "mocker/random.hpp"
@@ -67,6 +69,10 @@ struct KcpServer {
                 case Messages::Payload::Replay: {
                     auto replay = msg->payload_as_Replay();
                     fmt::println("onMessage Replay [{}, {}] of {}", replay->dt_start(), replay->dt_end(), replay->topic()->symbol()->c_str());
+                    break;
+                }
+                case Messages::Payload::HeartBeat: {
+                    alives_[channel->peeraddr()] = gettick_ms();
                     break;
                 }
                 default: {
@@ -128,6 +134,24 @@ struct KcpServer {
                 server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
             }
         });
+
+        // heartbeat
+        server_.loop()->setInterval(5000, [this](hv::TimerID timerID) {
+            for (auto&& [url, client] : clients_) {
+                builder_.Clear();
+                auto hb = Messages::CreateHeartBeat(builder_);
+                auto msg = Messages::CreateMessage(builder_, Messages::Payload::HeartBeat, hb.Union());
+                builder_.Finish(msg);
+                server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
+                alives_[url] = gettick_ms();
+            }
+        });
+        // check alive
+        server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
+            std::erase_if(alives_, [this](auto&& kv) {
+                return kv.second > gettick_ms() - 5000;
+            });
+        });
     }
 
     void wait() {
@@ -143,6 +167,7 @@ struct KcpServer {
     hv::UdpServer server_;
     flatbuffers::FlatBufferBuilder builder_{1024};
     std::unordered_map<std::string, Client> clients_{};
+    std::unordered_map<std::string, uint64_t> alives_{};
 
    private:
     ClampedNormalIntGenerator vol_gen_{4000, 500};
