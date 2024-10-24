@@ -6,6 +6,12 @@ table Topic{
     symbol: string;
 }
 
+table Replay{
+    dt_start: int64;
+    dt_end: int64;
+    topic: Topic;
+}
+
 table BarData {
     symbol: string;
     timestamp: int64;
