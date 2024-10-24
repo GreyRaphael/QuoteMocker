@@ -67,6 +67,14 @@ struct KcpClient {
                     fmt::println("EtfBar1mon: {},vol={}", etf_bar1mon->symbol()->c_str(), etf_bar1mon->volume());
                     break;
                 }
+                case Messages::Payload::HeartBeat: {
+                    flatbuffers::FlatBufferBuilder builder;
+                    auto hb = Messages::CreateHeartBeat(builder);
+                    auto msg = Messages::CreateMessage(builder, Messages::Payload::HeartBeat, hb.Union());
+                    builder.Finish(msg);
+                    channel->write(builder.GetBufferPointer(), builder.GetSize());
+                    break;
+                }
                 default: {
                     fmt::println("Unknown payload type");
                     break;

@@ -24,6 +24,7 @@
 struct Client {
     sockaddr saddr;
     std::string symbol;
+    uint64_t last_dt;
 };
 
 struct KcpServer {
@@ -63,6 +64,7 @@ struct KcpServer {
                     Client client;
                     memcpy(&client.saddr, saddr, sizeof(sockaddr));
                     client.symbol = topic->symbol()->c_str();
+                    client.last_dt = gettick_ms();
                     clients_[channel->peeraddr()] = client;
                     break;
                 }
@@ -72,7 +74,7 @@ struct KcpServer {
                     break;
                 }
                 case Messages::Payload::HeartBeat: {
-                    alives_[channel->peeraddr()] = gettick_ms();
+                    clients_[channel->peeraddr()].last_dt = gettick_ms();
                     break;
                 }
                 default: {
@@ -91,7 +93,7 @@ struct KcpServer {
         server_.start();
         server_.loop()->setInterval(3000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                fmt::println("send bar1d to {}", url);
+                // fmt::println("send bar1d to {}", url);
                 builder_.Clear();
                 auto dt = gettick_ms();
                 auto bar1d = Messages::CreateBarDataDirect(
@@ -114,7 +116,7 @@ struct KcpServer {
 
         server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                fmt::println("send bar1min to {}", url);
+                // fmt::println("send bar1min to {}", url);
                 builder_.Clear();
                 auto dt = gettick_ms();
                 auto bar1min = Messages::CreateBarDataDirect(
@@ -137,19 +139,24 @@ struct KcpServer {
 
         // heartbeat
         server_.loop()->setInterval(5000, [this](hv::TimerID timerID) {
+            auto now = gettick_ms();
+            fmt::println("send heartbeat at {}", now);
             for (auto&& [url, client] : clients_) {
                 builder_.Clear();
                 auto hb = Messages::CreateHeartBeat(builder_);
                 auto msg = Messages::CreateMessage(builder_, Messages::Payload::HeartBeat, hb.Union());
                 builder_.Finish(msg);
                 server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
-                alives_[url] = gettick_ms();
+                clients_[url].last_dt = now;
             }
         });
         // check alive
         server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
-            std::erase_if(alives_, [this](auto&& kv) {
-                return kv.second > gettick_ms() - 5000;
+            auto now = gettick_ms();
+            fmt::println("check alive at {}", now);
+
+            std::erase_if(clients_, [this](auto&& kv) {
+                return kv.second.last_dt + 5000 < gettick_ms();
             });
         });
     }
@@ -167,7 +174,6 @@ struct KcpServer {
     hv::UdpServer server_;
     flatbuffers::FlatBufferBuilder builder_{1024};
     std::unordered_map<std::string, Client> clients_{};
-    std::unordered_map<std::string, uint64_t> alives_{};
 
    private:
     ClampedNormalIntGenerator vol_gen_{4000, 500};
