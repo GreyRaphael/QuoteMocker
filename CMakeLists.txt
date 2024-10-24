@@ -33,9 +33,11 @@ if(BUILD_KCP_EXAMPLES)
     target_link_libraries(kcp_server PRIVATE hv_static)
     target_link_libraries(kcp_server PRIVATE fmt::fmt)
     target_include_directories(kcp_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-
+    target_include_directories(kcp_server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
+    
     add_executable(kcp_client examples/kcp/client.cpp)
     target_link_libraries(kcp_client PRIVATE hv_static)
     target_link_libraries(kcp_client PRIVATE fmt::fmt)
     target_include_directories(kcp_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_include_directories(kcp_client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
 endif()
