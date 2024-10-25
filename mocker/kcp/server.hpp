@@ -61,21 +61,21 @@ struct KcpServer {
         server_.onMessage = [this](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
             auto msg = Messages::GetMessage(buf->data());
             switch (msg->payload_type()) {
-                case Messages::Payload::Topic: {
-                    auto topic = msg->payload_as_Topic();
-                    logd("onMessage Topic of expression={}", topic->expression()->c_str());
+                case Messages::Payload::Subscribe: {
+                    // auto topic = msg->payload_as_Topic();
+                    // logd("onMessage Topic of expression={}", topic->expression()->c_str());
 
-                    auto saddr = hio_peeraddr(channel->io());
-                    Client client;
-                    memcpy(&client.saddr, saddr, sizeof(sockaddr));
-                    client.quote_maps = std::move(parse_expr(topic->expression()->string_view()));
-                    client.last_dt = gettick_ms();
-                    clients_[channel->peeraddr()] = client;
+                    // auto saddr = hio_peeraddr(channel->io());
+                    // Client client;
+                    // memcpy(&client.saddr, saddr, sizeof(sockaddr));
+                    // client.quote_maps = std::move(parse_expr(topic->expression()->string_view()));
+                    // client.last_dt = gettick_ms();
+                    // clients_[channel->peeraddr()] = client;
                     break;
                 }
                 case Messages::Payload::Replay: {
                     auto replay = msg->payload_as_Replay();
-                    logd("onMessage Replay [{}, {}] of {}", replay->dt_start(), replay->dt_end(), replay->topic()->expression()->c_str());
+                    logd("onMessage Replay [{}, {}]", replay->dt_start(), replay->dt_end());
                     break;
                 }
                 case Messages::Payload::HeartBeat: {

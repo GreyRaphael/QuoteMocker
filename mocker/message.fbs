@@ -1,13 +1,24 @@
 namespace Messages;
 
-table Topic{
-    expression: string;
+enum QuoteType : uint8 {
+    OrderData,
+    TradeData,
+    TickData,
+    K1min,
+    K1d,
+    K1w,
+    K1mon
 }
 
-table Replay{
+table Topic{
+    type: QuoteType;
+    symbols: string;
+}
+
+table Topics{
+    topics: [Topic];
     dt_start: int64;
     dt_end: int64;
-    topic: Topic;
 }
 
 table HeartBeat{
@@ -86,8 +97,8 @@ union Payload {
     K1d: Kline,
     K1w: Kline,
     K1mon: Kline,
-    Topic,
-    Replay,
+    Subscribe:Topics,
+    Replay:Topics,
     HeartBeat,
     ErrorData
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <flatbuffers/buffer.h>
 #include <flatbuffers/flatbuffer_builder.h>
 #include <fmtlog/fmtlog-inl.h>
 #include <hv/UdpClient.h>
@@ -7,6 +8,8 @@
 #include <filesystem>
 #include <fstream>
 #include <hv/json.hpp>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "mocker/message_generated.h"
@@ -97,20 +100,24 @@ struct KcpClient {
     }
 
     void subscribe(std::vector<std::string> const& symbols) {
+        std::unordered_map<Messages::QuoteType, std::string> quote_map{
+            {Messages::QuoteType::K1d, "600000|300016"},
+            {Messages::QuoteType::K1min, "688538|000001"},
+        };
+
         builder_.Clear();
-        auto topic = Messages::CreateTopicDirect(builder_, R"({"k1d":"600000|300116", "k1min":"600000|300116"})");
-        auto msg = Messages::CreateMessage(builder_, Messages::Payload::Topic, topic.Union());
-        builder_.Finish(msg);
+        std::vector<flatbuffers::Offset<Messages::Topic>> topic_offsets;
+        for (auto&& [k, v] : quote_map) {
+            auto topic = Messages::CreateTopicDirect(builder_, k, v.c_str());
+            topic_offsets.emplace_back(topic);
+        }
+        auto topics = Messages::CreateTopicsDirect(builder_, &topic_offsets);
+        auto msg = Messages::CreateMessage(builder_, Messages::Payload::Subscribe, topics.Union());
         client_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
     }
 
     void replay(std::vector<std::string> const& symbols) {
         builder_.Clear();
-        auto topic = Messages::CreateTopicDirect(builder_, R"({"k1min":"688538|000001"})");
-        auto replay = Messages::CreateReplay(builder_, 1729390224, 1729735824, topic);
-        auto msg = Messages::CreateMessage(builder_, Messages::Payload::Replay, replay.Union());
-        builder_.Finish(msg);
-        client_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
     }
 
     void wait() {
