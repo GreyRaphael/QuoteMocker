@@ -15,16 +15,18 @@
 #include <cstring>
 #include <fstream>
 #include <hv/json.hpp>
+#include <ranges>
+#include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
 #include "mocker/message_generated.h"
 #include "mocker/random.hpp"
-#include "mocker/topic_parser.hpp"
 
 struct Client {
     sockaddr saddr;
-    QuoteMap quote_maps;
+    std::unordered_map<Messages::QuoteType, std::vector<std::string>> quote_map;
     uint64_t last_dt;
 };
 
@@ -62,15 +64,21 @@ struct KcpServer {
             auto msg = Messages::GetMessage(buf->data());
             switch (msg->payload_type()) {
                 case Messages::Payload::Subscribe: {
-                    // auto topic = msg->payload_as_Topic();
-                    // logd("onMessage Topic of expression={}", topic->expression()->c_str());
+                    auto subscribes = msg->payload_as_Subscribe();
+                    Client client{};
+                    for (auto&& topic : *subscribes->topics()) {
+                        auto symbols = topic->symbols()->string_view();
+                        logd("onMessage Subscribe of {}", symbols);
+                        auto range = symbols | std::views::split('|') | std::views::transform([](auto&& rng) { return std::string_view(rng.begin(), rng.end()); });
+                        for (auto&& symbol : range) {
+                            client.quote_map[topic->type()].emplace_back(symbol);
+                        }
+                    }
 
-                    // auto saddr = hio_peeraddr(channel->io());
-                    // Client client;
-                    // memcpy(&client.saddr, saddr, sizeof(sockaddr));
-                    // client.quote_maps = std::move(parse_expr(topic->expression()->string_view()));
-                    // client.last_dt = gettick_ms();
-                    // clients_[channel->peeraddr()] = client;
+                    auto saddr = hio_peeraddr(channel->io());
+                    memcpy(&client.saddr, saddr, sizeof(sockaddr));
+                    client.last_dt = gettick_ms();
+                    clients_[channel->peeraddr()] = client;
                     break;
                 }
                 case Messages::Payload::Replay: {
@@ -99,8 +107,8 @@ struct KcpServer {
         // send Kline1d
         server_.loop()->setInterval(3000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                if (client.quote_maps.contains(Messages::Payload::K1d)) {
-                    for (auto&& symbol : client.quote_maps[Messages::Payload::K1d]) {
+                if (client.quote_map.contains(Messages::QuoteType::K1d)) {
+                    for (auto&& symbol : client.quote_map[Messages::QuoteType::K1d]) {
                         logd("send k1d:{} to {}", symbol, url);
                         builder_.Clear();
                         auto dt = gettick_ms();
@@ -127,8 +135,8 @@ struct KcpServer {
         // send Kline1min
         server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                if (client.quote_maps.contains(Messages::Payload::K1min)) {
-                    for (auto&& symbol : client.quote_maps[Messages::Payload::K1min]) {
+                if (client.quote_map.contains(Messages::QuoteType::K1min)) {
+                    for (auto&& symbol : client.quote_map[Messages::QuoteType::K1min]) {
                         logd("send k1min:{} to {}", symbol, url);
                         builder_.Clear();
                         auto dt = gettick_ms();

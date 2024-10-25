@@ -99,12 +99,7 @@ struct KcpClient {
         });
     }
 
-    void subscribe(std::vector<std::string> const& symbols) {
-        std::unordered_map<Messages::QuoteType, std::string> quote_map{
-            {Messages::QuoteType::K1d, "600000|300016"},
-            {Messages::QuoteType::K1min, "688538|000001"},
-        };
-
+    void subscribe(std::unordered_map<Messages::QuoteType, std::string> const& quote_map) {
         builder_.Clear();
         std::vector<flatbuffers::Offset<Messages::Topic>> topic_offsets;
         for (auto&& [k, v] : quote_map) {
@@ -113,11 +108,21 @@ struct KcpClient {
         }
         auto topics = Messages::CreateTopicsDirect(builder_, &topic_offsets);
         auto msg = Messages::CreateMessage(builder_, Messages::Payload::Subscribe, topics.Union());
+        builder_.Finish(msg);
         client_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
     }
 
-    void replay(std::vector<std::string> const& symbols) {
+    void replay(std::unordered_map<Messages::QuoteType, std::string> const& quote_map) {
         builder_.Clear();
+        std::vector<flatbuffers::Offset<Messages::Topic>> topic_offsets;
+        for (auto&& [k, v] : quote_map) {
+            auto topic = Messages::CreateTopicDirect(builder_, k, v.c_str());
+            topic_offsets.emplace_back(topic);
+        }
+        auto topics = Messages::CreateTopicsDirect(builder_, &topic_offsets, 1727292324, 1729884324);
+        auto msg = Messages::CreateMessage(builder_, Messages::Payload::Replay, topics.Union());
+        builder_.Finish(msg);
+        client_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
     }
 
     void wait() {
