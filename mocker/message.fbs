@@ -1,14 +1,7 @@
 namespace Messages;
 
-enum Market:uint8{
-    SSE = 1,
-    SZSE
-}
-
 table Topic{
-    market: uint8;
-    type: uint8;
-    symbol: string;
+    expression: string;
 }
 
 table Replay{
@@ -82,14 +75,14 @@ table TradeData{
 }
 
 union Payload {
-    EtfBar1min: BarData, // alias
-    EtfBar1d: BarData,
-    EtfBar1w: BarData,
-    EtfBar1mon: BarData,
-    EtfTick: TickData,
-    Topic,
     OrderData,
     TradeData,
+    TickData,
+    Bar1min: BarData, // alias
+    Bar1d: BarData,
+    Bar1w: BarData,
+    Bar1mon: BarData,
+    Topic,
     Replay,
     HeartBeat
 }
