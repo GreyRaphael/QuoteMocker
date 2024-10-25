@@ -20,10 +20,11 @@
 
 #include "mocker/message_generated.h"
 #include "mocker/random.hpp"
+#include "mocker/topic_parser.hpp"
 
 struct Client {
     sockaddr saddr;
-    std::string symbol;
+    QuoteMap quote_maps;
     uint64_t last_dt;
 };
 
@@ -67,7 +68,7 @@ struct KcpServer {
                     auto saddr = hio_peeraddr(channel->io());
                     Client client;
                     memcpy(&client.saddr, saddr, sizeof(sockaddr));
-                    client.symbol = "300116";
+                    client.quote_maps = std::move(parse_expr(topic->expression()->string_view()));
                     client.last_dt = gettick_ms();
                     clients_[channel->peeraddr()] = client;
                     break;
@@ -98,48 +99,56 @@ struct KcpServer {
         // send Kline1d
         server_.loop()->setInterval(3000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                logd("send k1d to {}", url);
-                builder_.Clear();
-                auto dt = gettick_ms();
-                auto k1d = Messages::CreateKlineDirect(
-                    builder_,
-                    client.symbol.c_str(),
-                    dt,
-                    amt_gen_(),
-                    vol_gen_(),
-                    num_gen_(),
-                    price_gen_(),
-                    price_gen_(),
-                    price_gen_(),
-                    price_gen_(),
-                    price_gen_());
-                auto reply = Messages::CreateMessage(builder_, Messages::Payload::K1d, k1d.Union());
-                builder_.Finish(reply);
-                server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
+                if (client.quote_maps.contains(Messages::Payload::K1d)) {
+                    for (auto&& symbol : client.quote_maps[Messages::Payload::K1d]) {
+                        logd("send k1d:{} to {}", symbol, url);
+                        builder_.Clear();
+                        auto dt = gettick_ms();
+                        auto k1d = Messages::CreateKlineDirect(
+                            builder_,
+                            symbol.c_str(),
+                            dt,
+                            amt_gen_(),
+                            vol_gen_(),
+                            num_gen_(),
+                            price_gen_(),
+                            price_gen_(),
+                            price_gen_(),
+                            price_gen_(),
+                            price_gen_());
+                        auto reply = Messages::CreateMessage(builder_, Messages::Payload::K1d, k1d.Union());
+                        builder_.Finish(reply);
+                        server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
+                    }
+                }
             }
         });
 
         // send Kline1min
         server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                logd("send k1min to {}", url);
-                builder_.Clear();
-                auto dt = gettick_ms();
-                auto k1min = Messages::CreateKlineDirect(
-                    builder_,
-                    client.symbol.c_str(),
-                    dt,
-                    amt_gen_(),
-                    vol_gen_(),
-                    num_gen_(),
-                    price_gen_(),
-                    price_gen_(),
-                    price_gen_(),
-                    price_gen_(),
-                    price_gen_());
-                auto reply = Messages::CreateMessage(builder_, Messages::Payload::K1min, k1min.Union());
-                builder_.Finish(reply);
-                server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
+                if (client.quote_maps.contains(Messages::Payload::K1min)) {
+                    for (auto&& symbol : client.quote_maps[Messages::Payload::K1min]) {
+                        logd("send k1min:{} to {}", symbol, url);
+                        builder_.Clear();
+                        auto dt = gettick_ms();
+                        auto k1min = Messages::CreateKlineDirect(
+                            builder_,
+                            symbol.c_str(),
+                            dt,
+                            amt_gen_(),
+                            vol_gen_(),
+                            num_gen_(),
+                            price_gen_(),
+                            price_gen_(),
+                            price_gen_(),
+                            price_gen_(),
+                            price_gen_());
+                        auto reply = Messages::CreateMessage(builder_, Messages::Payload::K1min, k1min.Union());
+                        builder_.Finish(reply);
+                        server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
+                    }
+                }
             }
         });
 

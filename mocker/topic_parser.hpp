@@ -2,14 +2,12 @@
 #include <hv/json.hpp>
 #include <ranges>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
 
 #include "message_generated.h"
 
-struct Subject {
-    Messages::Payload quote_type;
-    std::vector<std::string> symbols;
-};
+using QuoteMap = std::unordered_map<Messages::Payload, std::vector<std::string>>;
 
 inline Messages::Payload parse_quote_type(std::string_view str) {
     if (str == "order") {
@@ -31,19 +29,15 @@ inline Messages::Payload parse_quote_type(std::string_view str) {
     }
 }
 
-inline std::vector<Subject> parse_expr(std::string_view str) {
+inline QuoteMap parse_expr(std::string_view str) {
     // {"tick":"600022|600000", "k1d":"000001|300116", "order":"000001|300116"}
     auto j = nlohmann::json::parse(str);
-    std::vector<Subject> subjects;
-    subjects.reserve(j.size());
+    QuoteMap map{};
     for (auto&& [k, v] : j.items()) {
-        Subject s{};
-        s.quote_type = parse_quote_type(k);
+        auto quote_type = parse_quote_type(k);
         auto range = v.get<std::string_view>() | std::views::split('|') | std::views::transform([](auto&& rng) { return std::string_view(rng.begin(), rng.end()); });
-        for (auto&& e : range) {
-            s.symbols.emplace_back(e);
-        }
-        subjects.emplace_back(s);
+        std::vector<std::string> symbols{range.begin(), range.end()};
+        map[quote_type] = std::move(symbols);
     }
-    return subjects;
+    return map;
 }

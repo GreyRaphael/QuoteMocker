@@ -98,7 +98,7 @@ struct KcpClient {
 
     void subscribe(std::vector<std::string> const& symbols) {
         builder_.Clear();
-        auto topic = Messages::CreateTopicDirect(builder_, "k1d:600000");
+        auto topic = Messages::CreateTopicDirect(builder_, R"({"k1d":"600000|300116", "k1min":"600000|300116"})");
         auto msg = Messages::CreateMessage(builder_, Messages::Payload::Topic, topic.Union());
         builder_.Finish(msg);
         client_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
@@ -106,7 +106,7 @@ struct KcpClient {
 
     void replay(std::vector<std::string> const& symbols) {
         builder_.Clear();
-        auto topic = Messages::CreateTopicDirect(builder_, "k1min:688538");
+        auto topic = Messages::CreateTopicDirect(builder_, R"({"k1min":"688538|000001"})");
         auto replay = Messages::CreateReplay(builder_, 1729390224, 1729735824, topic);
         auto msg = Messages::CreateMessage(builder_, Messages::Payload::Replay, replay.Union());
         builder_.Finish(msg);
