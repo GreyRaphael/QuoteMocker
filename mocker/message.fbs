@@ -1,5 +1,10 @@
 namespace Messages;
 
+enum Market:uint8{
+    SSE = 1,
+    SZSE
+}
+
 table Topic{
     market: uint8;
     type: uint8;
@@ -52,6 +57,30 @@ table TickData {
     bn: [uint32];
 }
 
+// under consideration
+table OrderData{
+    symbol: string;
+    timestamp: int64;
+    price: uint32;
+    volume: uint64;
+    side: uint8;
+    order_type: uint8;
+    seq_num: uint32;
+    orig_seq_num: uint32;
+}
+
+// under consideration
+table TradeData{
+    symbol: string;
+    timestamp: int64;
+    price: uint32;
+    volume: uint64;
+    side: uint8;
+    seq_num: uint32;
+    ask_seq_num: uint32;
+    bid_seq_num: uint32;
+}
+
 union Payload {
     EtfBar1min: BarData, // alias
     EtfBar1d: BarData,
@@ -59,6 +88,8 @@ union Payload {
     EtfBar1mon: BarData,
     EtfTick: TickData,
     Topic,
+    OrderData,
+    TradeData,
     Replay,
     HeartBeat
 }
