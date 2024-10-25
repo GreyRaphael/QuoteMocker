@@ -71,14 +71,6 @@ struct KcpClient {
                     logd("EtfBar1mon: {},vol={}", etf_bar1mon->symbol()->c_str(), etf_bar1mon->volume());
                     break;
                 }
-                case Messages::Payload::HeartBeat: {
-                    flatbuffers::FlatBufferBuilder builder;
-                    auto hb = Messages::CreateHeartBeat(builder);
-                    auto msg = Messages::CreateMessage(builder, Messages::Payload::HeartBeat, hb.Union());
-                    builder.Finish(msg);
-                    channel->write(builder.GetBufferPointer(), builder.GetSize());
-                    break;
-                }
                 default: {
                     logd("Unknown payload type");
                     break;
@@ -92,23 +84,33 @@ struct KcpClient {
         // set kcp options
         client_.setKcp(&kcp_setting_);
         client_.start();
+
+        // send heartbeat periodically
+        client_.loop()->setInterval(5000, [this](hv::TimerID timerID) {
+            builder_.Clear();
+            auto hb = Messages::CreateHeartBeat(builder_);
+            auto msg = Messages::CreateMessage(builder_, Messages::Payload::HeartBeat, hb.Union());
+            builder_.Finish(msg);
+            client_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
+            logd("HeartBeat sent {} bytes", builder_.GetSize());
+        });
     }
 
     void subscribe(std::vector<std::string> const& symbols) {
-        flatbuffers::FlatBufferBuilder builder;
-        auto topic = Messages::CreateTopicDirect(builder, 1, 1, "300116");
-        auto msg = Messages::CreateMessage(builder, Messages::Payload::Topic, topic.Union());
-        builder.Finish(msg);
-        client_.sendto(builder.GetBufferPointer(), builder.GetSize());
+        builder_.Clear();
+        auto topic = Messages::CreateTopicDirect(builder_, 1, 1, "300116");
+        auto msg = Messages::CreateMessage(builder_, Messages::Payload::Topic, topic.Union());
+        builder_.Finish(msg);
+        client_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
     }
 
     void replay(std::vector<std::string> const& symbols) {
-        flatbuffers::FlatBufferBuilder builder;
-        auto topic = Messages::CreateTopicDirect(builder, 1, 1, "688538");
-        auto replay = Messages::CreateReplay(builder, 1729390224, 1729735824, topic);
-        auto msg = Messages::CreateMessage(builder, Messages::Payload::Replay, replay.Union());
-        builder.Finish(msg);
-        client_.sendto(builder.GetBufferPointer(), builder.GetSize());
+        builder_.Clear();
+        auto topic = Messages::CreateTopicDirect(builder_, 1, 1, "688538");
+        auto replay = Messages::CreateReplay(builder_, 1729390224, 1729735824, topic);
+        auto msg = Messages::CreateMessage(builder_, Messages::Payload::Replay, replay.Union());
+        builder_.Finish(msg);
+        client_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
     }
 
     void wait() {
@@ -123,4 +125,5 @@ struct KcpClient {
    private:
     kcp_setting_t kcp_setting_;
     hv::UdpClient client_;
+    flatbuffers::FlatBufferBuilder builder_{1024};
 };

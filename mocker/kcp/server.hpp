@@ -94,9 +94,11 @@ struct KcpServer {
         // set kcp options
         server_.setKcp(&kcp_setting_);
         server_.start();
+
+        // send EtfBar1d
         server_.loop()->setInterval(3000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                // logd("send bar1d to {}", url);
+                logd("send bar1d to {}", url);
                 builder_.Clear();
                 auto dt = gettick_ms();
                 auto bar1d = Messages::CreateBarDataDirect(
@@ -117,9 +119,10 @@ struct KcpServer {
             }
         });
 
+        // send EtfBar1min
         server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                // logd("send bar1min to {}", url);
+                logd("send bar1min to {}", url);
                 builder_.Clear();
                 auto dt = gettick_ms();
                 auto bar1min = Messages::CreateBarDataDirect(
@@ -140,26 +143,12 @@ struct KcpServer {
             }
         });
 
-        // heartbeat
-        server_.loop()->setInterval(5000, [this](hv::TimerID timerID) {
-            auto now = gettick_ms();
-            logd("send heartbeat at {}", now);
-            for (auto&& [url, client] : clients_) {
-                builder_.Clear();
-                auto hb = Messages::CreateHeartBeat(builder_);
-                auto msg = Messages::CreateMessage(builder_, Messages::Payload::HeartBeat, hb.Union());
-                builder_.Finish(msg);
-                server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
-                clients_[url].last_dt = now;
-            }
-        });
         // check alive
-        server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
-            auto now = gettick_ms();
-            logd("check alive at {}", now);
+        server_.loop()->setInterval(4000, [this](hv::TimerID timerID) {
+            logd("check alive clients");
 
             std::erase_if(clients_, [this](auto&& kv) {
-                return kv.second.last_dt + 5000 < gettick_ms();
+                return kv.second.last_dt + 12000 < gettick_ms();
             });
         });
     }
