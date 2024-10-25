@@ -13,7 +13,7 @@ table Replay{
 table HeartBeat{
 }
 
-table BarData {
+table Kline {
     symbol: string;
     timestamp: int64;
     amount: uint64;
@@ -78,10 +78,10 @@ union Payload {
     OrderData,
     TradeData,
     TickData,
-    Bar1min: BarData, // alias
-    Bar1d: BarData,
-    Bar1w: BarData,
-    Bar1mon: BarData,
+    K1min: Kline, // alias
+    K1d: Kline,
+    K1w: Kline,
+    K1mon: Kline,
     Topic,
     Replay,
     HeartBeat
