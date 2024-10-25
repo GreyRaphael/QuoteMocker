@@ -62,19 +62,19 @@ struct KcpServer {
             switch (msg->payload_type()) {
                 case Messages::Payload::Topic: {
                     auto topic = msg->payload_as_Topic();
-                    logd("onMessage Topic of {}, id={}, mkt={},type={},symbol={}", channel->peeraddr(), channel->id(), topic->market(), topic->type(), topic->symbol()->c_str());
+                    logd("onMessage Topic of expression={}", topic->expression()->c_str());
 
                     auto saddr = hio_peeraddr(channel->io());
                     Client client;
                     memcpy(&client.saddr, saddr, sizeof(sockaddr));
-                    client.symbol = topic->symbol()->c_str();
+                    client.symbol = "300116";
                     client.last_dt = gettick_ms();
                     clients_[channel->peeraddr()] = client;
                     break;
                 }
                 case Messages::Payload::Replay: {
                     auto replay = msg->payload_as_Replay();
-                    logd("onMessage Replay [{}, {}] of {}", replay->dt_start(), replay->dt_end(), replay->topic()->symbol()->c_str());
+                    logd("onMessage Replay [{}, {}] of {}", replay->dt_start(), replay->dt_end(), replay->topic()->expression()->c_str());
                     break;
                 }
                 case Messages::Payload::HeartBeat: {
@@ -95,13 +95,13 @@ struct KcpServer {
         server_.setKcp(&kcp_setting_);
         server_.start();
 
-        // send EtfBar1d
+        // send Kline1d
         server_.loop()->setInterval(3000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                logd("send bar1d to {}", url);
+                logd("send k1d to {}", url);
                 builder_.Clear();
                 auto dt = gettick_ms();
-                auto bar1d = Messages::CreateBarDataDirect(
+                auto k1d = Messages::CreateKlineDirect(
                     builder_,
                     client.symbol.c_str(),
                     dt,
@@ -113,19 +113,19 @@ struct KcpServer {
                     price_gen_(),
                     price_gen_(),
                     price_gen_());
-                auto reply = Messages::CreateMessage(builder_, Messages::Payload::EtfBar1d, bar1d.Union());
+                auto reply = Messages::CreateMessage(builder_, Messages::Payload::K1d, k1d.Union());
                 builder_.Finish(reply);
                 server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
             }
         });
 
-        // send EtfBar1min
+        // send Kline1min
         server_.loop()->setInterval(1000, [this](hv::TimerID timerID) {
             for (auto&& [url, client] : clients_) {
-                logd("send bar1min to {}", url);
+                logd("send k1min to {}", url);
                 builder_.Clear();
                 auto dt = gettick_ms();
-                auto bar1min = Messages::CreateBarDataDirect(
+                auto k1min = Messages::CreateKlineDirect(
                     builder_,
                     client.symbol.c_str(),
                     dt,
@@ -137,7 +137,7 @@ struct KcpServer {
                     price_gen_(),
                     price_gen_(),
                     price_gen_());
-                auto reply = Messages::CreateMessage(builder_, Messages::Payload::EtfBar1min, bar1min.Union());
+                auto reply = Messages::CreateMessage(builder_, Messages::Payload::K1min, k1min.Union());
                 builder_.Finish(reply);
                 server_.sendto(builder_.GetBufferPointer(), builder_.GetSize(), &client.saddr);
             }

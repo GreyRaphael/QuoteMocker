@@ -51,24 +51,24 @@ struct KcpClient {
         client_.onMessage = [](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
             auto msg = Messages::GetMessage(buf->data());
             switch (msg->payload_type()) {
-                case Messages::Payload::EtfBar1d: {
-                    auto etf_bar1d = msg->payload_as_EtfBar1d();
-                    logd("EtfBar1d: {},vol={}", etf_bar1d->symbol()->c_str(), etf_bar1d->volume());
+                case Messages::Payload::K1d: {
+                    auto k1d = msg->payload_as_K1d();
+                    logd("K1d: {},vol={}", k1d->symbol()->c_str(), k1d->volume());
                     break;
                 }
-                case Messages::Payload::EtfBar1min: {
-                    auto etf_bar1min = msg->payload_as_EtfBar1min();
-                    logd("EtfBar1min: {},vol={}", etf_bar1min->symbol()->c_str(), etf_bar1min->volume());
+                case Messages::Payload::K1min: {
+                    auto k1min = msg->payload_as_K1min();
+                    logd("K1min: {},vol={}", k1min->symbol()->c_str(), k1min->volume());
                     break;
                 }
-                case Messages::Payload::EtfBar1w: {
-                    auto etf_bar1w = msg->payload_as_EtfBar1w();
-                    logd("EtfBar1w: {},vol={}", etf_bar1w->symbol()->c_str(), etf_bar1w->volume());
+                case Messages::Payload::K1w: {
+                    auto k1w = msg->payload_as_K1w();
+                    logd("K1w: {},vol={}", k1w->symbol()->c_str(), k1w->volume());
                     break;
                 }
-                case Messages::Payload::EtfBar1mon: {
-                    auto etf_bar1mon = msg->payload_as_EtfBar1mon();
-                    logd("EtfBar1mon: {},vol={}", etf_bar1mon->symbol()->c_str(), etf_bar1mon->volume());
+                case Messages::Payload::K1mon: {
+                    auto k1mon = msg->payload_as_K1mon();
+                    logd("K1mon: {},vol={}", k1mon->symbol()->c_str(), k1mon->volume());
                     break;
                 }
                 default: {
@@ -98,7 +98,7 @@ struct KcpClient {
 
     void subscribe(std::vector<std::string> const& symbols) {
         builder_.Clear();
-        auto topic = Messages::CreateTopicDirect(builder_, 1, 1, "300116");
+        auto topic = Messages::CreateTopicDirect(builder_, "k1d:600000");
         auto msg = Messages::CreateMessage(builder_, Messages::Payload::Topic, topic.Union());
         builder_.Finish(msg);
         client_.sendto(builder_.GetBufferPointer(), builder_.GetSize());
@@ -106,7 +106,7 @@ struct KcpClient {
 
     void replay(std::vector<std::string> const& symbols) {
         builder_.Clear();
-        auto topic = Messages::CreateTopicDirect(builder_, 1, 1, "688538");
+        auto topic = Messages::CreateTopicDirect(builder_, "k1min:688538");
         auto replay = Messages::CreateReplay(builder_, 1729390224, 1729735824, topic);
         auto msg = Messages::CreateMessage(builder_, Messages::Payload::Replay, replay.Union());
         builder_.Finish(msg);
