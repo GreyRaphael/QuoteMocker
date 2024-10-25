@@ -74,6 +74,10 @@ table TradeData{
     bid_seq_num: uint32;
 }
 
+table ErrorData{
+    text: string;
+}
+
 union Payload {
     OrderData,
     TradeData,
@@ -84,7 +88,8 @@ union Payload {
     K1mon: Kline,
     Topic,
     Replay,
-    HeartBeat
+    HeartBeat,
+    ErrorData
 }
 
 table Message {
