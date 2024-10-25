@@ -637,7 +637,8 @@ public:
       out += copy_size;
       begin = p;
       c = *p++;
-      if (!c) fmt::detail::throw_format_error("invalid format string");
+      // if (!c) fmt::detail::throw_format_error("invalid format string");
+      if (!c) throw fmt::format_error("invalid format string");
       if (fmt::detail::is_name_start(c)) {
         while ((fmt::detail::is_name_start(c = *p) || ('0' <= c && c <= '9'))) {
           ++p;
@@ -650,7 +651,8 @@ public:
             break;
           }
         }
-        if (id < 0) fmt::detail::throw_format_error("invalid format string");
+        // if (id < 0) fmt::detail::throw_format_error("invalid format string");
+        if (id < 0) throw fmt::format_error("invalid format string");
         if constexpr (Reorder) {
           reorderIdx[id] = arg_idx++;
         }
