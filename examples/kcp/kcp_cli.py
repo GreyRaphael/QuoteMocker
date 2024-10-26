@@ -3,6 +3,7 @@ from kcp import KCPClientSync
 import time
 from Messages.Message import Message
 from Messages.Payload import Payload
+from Messages.ErrorData import ErrorData
 
 
 client = KCPClientSync(
@@ -24,7 +25,9 @@ def handle_data(data: bytes) -> None:
     payload_type = msg.PayloadType()
     payload = msg.Payload()
     if payload_type == Payload.ErrorData:
-        print("Error:", payload)
+        err = ErrorData()
+        err.Init(payload.Bytes, payload.Pos)
+        print("Error:", err.Text().decode())
 
 
 @client.on_start
