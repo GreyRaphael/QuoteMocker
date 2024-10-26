@@ -1,7 +1,8 @@
 # kcp_client.py
 from kcp import KCPClientSync
-from Messages import Message, Topics, Topic, Payload, QuoteType, ErrorData, Kline
+from Messages import Message, Topics, Topic, Payload, QuoteType, ErrorData, Kline, HeartBeat
 import flatbuffers
+import time
 
 client = KCPClientSync(
     "127.0.0.1",
@@ -108,9 +109,25 @@ def parse_message(buf):
         print("Unsupported payload type")
 
 
+def create_heartbeat() -> bytes:
+    builder = flatbuffers.Builder(64)
+    HeartBeat.Start(builder)
+    hb = HeartBeat.End(builder)
+
+    Message.Start(builder)
+    Message.AddPayloadType(builder, Payload.Payload.HeartBeat)
+    Message.AddPayload(builder, hb)
+    msg = Message.End(builder)
+    builder.Finish(msg)
+    return bytes(builder.Output())
+
+
 @client.on_data
 def handle_data(data: bytes) -> None:
     parse_message(data)
+
+
+heartbeat_buf = create_heartbeat()
 
 
 @client.on_start
@@ -118,6 +135,11 @@ def on_start() -> None:
     print("Connected to server!")
     topics_buf = create_topics_message()
     client.send(topics_buf)
+
+    # send heartbeat
+    while True:
+        client.send(heartbeat_buf)
+        time.sleep(5)
 
 
 client.start()
