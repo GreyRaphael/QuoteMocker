@@ -1,6 +1,7 @@
 #pragma once
 
 #include <flatbuffers/flatbuffer_builder.h>
+#include <flatbuffers/verifier.h>
 #include <fmtlog/fmtlog-inl.h>
 #include <hv/EventLoop.h>
 #include <hv/UdpServer.h>
@@ -21,6 +22,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "fmtlog/fmtlog.h"
 #include "mocker/message_generated.h"
 #include "mocker/random.hpp"
 
@@ -61,6 +63,17 @@ struct KcpServer {
         logi("server bind {}:{}", server_.host, server_.port);
 
         server_.onMessage = [this](const hv::SocketChannelPtr& channel, hv::Buffer* buf) {
+            flatbuffers::Verifier verifier{(uint8_t*)buf->data(), buf->size()};
+            if (!Messages::VerifyMessageBuffer(verifier)) {
+                // invalid message
+                logw("invalid messsage from {}, id={}", channel->peeraddr(), channel->id());
+                builder_.Clear();
+                auto reply = Messages::CreateErrorDataDirect(builder_, "Invalid Message");
+                auto msg = Messages::CreateMessage(builder_, Messages::Payload::ErrorData, reply.Union());
+                builder_.Finish(msg);
+                channel->write(builder_.GetBufferPointer(), builder_.GetSize());
+                return;
+            }
             auto msg = Messages::GetMessage(buf->data());
             switch (msg->payload_type()) {
                 case Messages::Payload::Subscribe: {
@@ -170,7 +183,8 @@ struct KcpServer {
         });
     }
 
-    void wait() {
+    void
+    wait() {
         while (getchar() != '\n');
     }
 
